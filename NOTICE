@@ -1,0 +1,33 @@
+Third-Party Software and Asset Notices
+------------------------------------------
+
+This project incorporates components from the following third-party libraries:
+
+1. Pillow (PIL Fork)
+   Copyright © 2010-2026 by Jeffrey A. Clark and contributors
+   Copyright © 1997-2011 by Secret Labs AB
+   Copyright © 1995-2011 by Fredrik Lundh and contributors
+   License: HPND / PIL License (MIT-CMU style)
+   URL: https://github.com/python-pillow/Pillow/blob/main/LICENSE
+
+2. ReportLab PDF Toolkit
+   Copyright (c) 2000-2026, ReportLab Inc.
+   License: BSD 3-Clause License
+   URL: https://reportlab.com
+
+This project includes the following fonts (Font Software):
+
+3. PT Astra Serif
+   Copyright (c) 2018, Paratype Inc.
+   Reserved Font Name: "PT Astra Serif"
+   License: SIL Open Font License, Version 1.1
+   URL: https://scripts.sil.org/OFL
+
+4. PT Mono
+   Copyright (c) 2018, Paratype Inc.
+   Reserved Font Name: "PT Mono"
+   License: SIL Open Font License, Version 1.1
+   URL: https://scripts.sil.org/OFL
+
+The full text of the SIL Open Font License for these fonts is included 
+in their respective directories within the 'fonts/' folder.

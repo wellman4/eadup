@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eadup"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "reportlab>=4.0.0",
+    "Pillow>=9.0.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["eadup*"]
+
+[project.scripts]
+eadup = "eadup.cli:main"
