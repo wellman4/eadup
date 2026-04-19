@@ -1,4 +1,4 @@
-#  Copyright (C) 2026 Ivan Goglenkov
+#  Copyright (C) 2026 Ivan Goglenkov (wellman4)
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as published by
 #  the Free Software Foundation, either version 3 of the License.
@@ -22,7 +22,10 @@ from .. import ast as document_ast
 
 RE_PREPOSITIONS = re.compile(r'\b(в|во|без|до|из|к|ко|на|по|о|от|перед|при|через|с|со|у|за|над|под|про|и|а|но|да|или)\b\s+', re.IGNORECASE)
 
-
+# CustomTOC is a derivative work based on TableOfContents from ReportLab.
+# Original code: Copyright (c) 2000-2026, ReportLab Inc.
+# Licensed under the BSD 3-Clause License.
+# Modifications: Ivan Goglenkov (wellman4), 2026
 class CustomTOC(TableOfContents):
     def wrap(self, availWidth, availHeight):
 

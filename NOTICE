@@ -1,3 +1,8 @@
+eadup v0.1.0
+Copyright (c) 2026 Ivan Goglenkov (wellman4)
+Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+
+------------------------------------------
 Third-Party Software and Asset Notices
 ------------------------------------------
 
@@ -14,6 +19,10 @@ This project incorporates components from the following third-party libraries:
    Copyright (c) 2000-2026, ReportLab Inc.
    License: BSD 3-Clause License
    URL: https://reportlab.com
+
+   Note: This project includes a modified version of the 'TableOfContents' 
+   class (CustomTOC), which incorporates source code from the ReportLab 
+   library under the terms of the BSD 3-Clause License.
 
 This project includes the following fonts (Font Software):
 
