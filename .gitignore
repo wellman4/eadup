@@ -1,7 +1,14 @@
-output/
-__pycache__/
-*.pyc
-*.egg-info/
-dist/
-build/
-venv/
+# --- Build Artifacts ---
+/target/
+**/*.rs.bk
+
+# --- IDEs and Editors ---
+.vscode/
+.idea/
+
+# --- OS generated files ---
+.DS_Store
+
+# --- Outputs ---
+*.pdf
+/output/
