@@ -1,6 +1,7 @@
 eadup v0.1.0
 Copyright (c) 2026 Ivan Goglenkov (wellman4)
-Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+This project is licensed under the GNU Affero General Public License v3.0.
+The full text of the license can be found in the LICENSE file in the root directory.
 
 ------------------------------------------
 Third-Party Software and Asset Notices
@@ -8,31 +9,35 @@ Third-Party Software and Asset Notices
 
 This project incorporates components from the following third-party libraries:
 
-1. Pillow (PIL Fork)
-   Copyright © 2010-2026 by Jeffrey A. Clark and contributors
-   Copyright © 1997-2011 by Secret Labs AB
-   Copyright © 1995-2011 by Fredrik Lundh and contributors
-   License: HPND / PIL License (MIT-CMU style)
-   URL: https://github.com/python-pillow/Pillow/blob/main/LICENSE
+1. Serde v1.0.228 
+   Copyright (c) 2014-2026 Erick Tryzelaar and David Tolnay
+   License: MIT OR Apache-2.0
+   URL: https://github.com/serde-rs/serde
 
-2. ReportLab PDF Toolkit
-   Copyright (c) 2000-2026, ReportLab Inc.
-   License: BSD 3-Clause License
-   URL: https://reportlab.com
+2. Serde JSON v1.0.149
+   Copyright (c) 2014-2026 Erick Tryzelaar and David Tolnay
+   License: MIT OR Apache-2.0
+   URL: https://github.com/serde-rs/json
 
-   Note: This project includes a modified version of the 'TableOfContents' 
-   class (CustomTOC), which incorporates source code from the ReportLab 
-   library under the terms of the BSD 3-Clause License.
+3. Clap v4.6.1
+   Copyright (c) 2015-2026 Clap-rs Contributors
+   License: MIT OR Apache-2.0
+   URL: https://github.com/clap-rs/clap
+
+4. Printpdf v0.9.1
+   Copyright (c) 2017-2026 Phillipp G. Schlegel
+   License: MIT OR Apache-2.0
+   URL: https://github.com/fschutt/printpdf
 
 This project includes the following fonts (Font Software):
 
-3. PT Astra Serif
+5. PT Astra Serif
    Copyright (c) 2018, Paratype Inc.
    Reserved Font Name: "PT Astra Serif"
    License: SIL Open Font License, Version 1.1
    URL: https://scripts.sil.org/OFL
 
-4. PT Mono
+6. PT Mono
    Copyright (c) 2018, Paratype Inc.
    Reserved Font Name: "PT Mono"
    License: SIL Open Font License, Version 1.1

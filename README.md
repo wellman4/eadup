@@ -15,26 +15,4 @@
 ## Автор / Author
 * **Разработчик:** Иван Гогленков (wellman4)
 * **Год:** 2026
-
-## Установка / Installation
-```bash
-# 1. Клонирование репозитория / Clone the repository
-git clone git@github.com:wellman4/eadup.git
-cd eadup
-
-# 2. Создание и активация виртуального окружения / Create and activate venv
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
-
-# 3. Установка пакета и зависимостей / Install package and dependencies
-pip install --upgrade pip
-pip install -e .
-```
-
-## Использование / Usage
-```bash
-eadup
-```
+* **Лицензия:** AGPL-3.0-or-later
