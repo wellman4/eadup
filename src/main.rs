@@ -5,11 +5,13 @@
 //  the Free Software Foundation, either version 3 of the License.
 
 use std::fs;
+use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::process;
 use clap::{Parser, ValueEnum};
 
 mod lexer;
+mod parser;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -37,10 +39,9 @@ enum OutputFormat {
     Docx,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    // Чтение файла
     let content = match fs::read_to_string(&args.input) {
         Ok(c) => c,
         Err(e) => {
@@ -53,36 +54,44 @@ fn main() {
 
     if args.emit_tokens {
         let output_path = args.input.with_extension("tokens");
-        
         let mut output = String::new();
-        output.push_str(&format!("{:<5} | {:<30} | TOKEN KIND\n", "LINE", "RAW"));
-        output.push_str(&format!("{:-<80}\n", ""));
+
+        writeln!(output, "{:<5} | {:<30} | TOKEN KIND", "LINE", "RAW")?;
+        writeln!(output, "{:-<80}", "")?;
 
         for token in lexer.clone() {
-            if let lexer::token::TokenType::Error(ref msg) = token.kind {
-                eprintln!("предупреждение на строке {}: {}", token.line, msg);
+            if let lexer::token::TokenType::Error { ref message } = token.kind {
+                eprintln!("предупреждение на строке {}: {}", token.line, message);
             }
 
-            let raw_trimmed = if token.raw.chars().count() > 30 {
-                let mut s: String = token.raw.chars().take(27).collect();
-                s.push_str("...");
-                s
+            let escaped_raw = token.raw.replace('\n', "\\n");
+            
+            let display_raw = if escaped_raw.chars().count() > 30 {
+                format!("{}...", escaped_raw.chars().take(27).collect::<String>())
             } else {
-                token.raw.to_string()
+                escaped_raw
             };
 
-            output.push_str(&format!(
-                "{:<5} | {:<30} | {:?}\n", 
-                token.line, 
-                raw_trimmed.replace('\n', "\\n"),
-                token.kind
-            ));
+            writeln!(
+                output,
+                "{:<5} | {:<30} | {:?}",
+                token.line, display_raw, token.kind
+            )?;
         }
 
-        if let Err(e) = fs::write(&output_path, output) {
+        fs::write(&output_path, output).map_err(|e| {
             eprintln!("Ошибка записи токенов: {}", e);
-            process::exit(1);
-        }
-        println!("Токены записаны в {:?}", output_path);
+            e
+        })?;
     }
+
+    let mut parser = parser::Parser::new(lexer);
+    let document_ast = parser.parse();
+
+    if args.emit_ast {
+        let debug_tree = document_ast.debug_print(0);
+        fs::write(args.input.with_extension("ast"), debug_tree)?;
+    }
+
+    Ok(())
 }

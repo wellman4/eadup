@@ -48,7 +48,7 @@ impl<'a> Lexer<'a> {
         if stripped.starts_with('\\') {
             return match stripped[1..].split_once('=') {
                 Some((key, val)) => TokenType::Attribute { key: key.trim(), value: val.trim() },
-                None => TokenType::Error("неверный формат атрибута (ожидалось '\\ключ = значение')".to_string()),
+                None => TokenType::Error { message: "неверный формат атрибута (ожидалось '\\ключ = значение')".to_string() },
             };
         }
 
@@ -63,9 +63,9 @@ impl<'a> Lexer<'a> {
             let content = stripped["ГРАФА".len()..].trim();
             
             return if content.is_empty() {
-                TokenType::Cell(None)
+                TokenType::Cell { text: None }
             } else {
-                TokenType::Cell(Some(content))
+                TokenType::Cell { text: Some(content) }
             };
         }
 
@@ -75,12 +75,12 @@ impl<'a> Lexer<'a> {
         }   
 
         // Абзац
-        TokenType::Paragraph(stripped)
+        TokenType::Paragraph { text: stripped }
     }
 
     fn parse_listing(&mut self) -> TokenType<'a> {
         let start_line = self.line_num;
-        let mut content = String::new();
+        let mut code = String::new();
         let mut found_end = false;
         while let Some(line) = self.lines.next() {
             self.line_num += 1;
@@ -88,16 +88,16 @@ impl<'a> Lexer<'a> {
                 found_end = true;
                 break;
             }
-            content.push_str(line);
-            content.push('\n');
+            code.push_str(line);
+            code.push('\n');
         }
         if found_end {
-            TokenType::Listing(content)
+            TokenType::Listing { code }
         } else {
-            TokenType::Error(format!(
+            TokenType::Error { message: format!(
                 "незакрытый листинг (начало на строке {})", 
                 start_line
-            ))
+            ) }
         }
     }
 
@@ -109,34 +109,34 @@ impl<'a> Lexer<'a> {
         use NoteKind::*;
 
         match s {
-            "ТИТУЛЬНЫЙ ЛИСТ" => Some(TokenType::Structural(TitlePage)),
-            "ЛИСТ ДЛЯ ЗАМЕЧАНИЙ" => Some(TokenType::Structural(NotesPage)),
+            "ТИТУЛЬНЫЙ ЛИСТ" => Some(TokenType::Structural { kind: TitlePage }),
+            "ЛИСТ ДЛЯ ЗАМЕЧАНИЙ" => Some(TokenType::Structural { kind: NotesPage }),
             
-            "РЕФЕРАТ" => Some(TokenType::Structural(Abstract(Extended))),
-            "АННОТАЦИЯ" => Some(TokenType::Structural(Abstract(Short))),
+            "РЕФЕРАТ" => Some(TokenType::Structural { kind: Abstract(Extended) }),
+            "АННОТАЦИЯ" => Some(TokenType::Structural { kind: Abstract(Short) }),
             
-            "СОДЕРЖАНИЕ" => Some(TokenType::Structural(Contents(Collection))),
-            "ОГЛАВЛЕНИЕ" => Some(TokenType::Structural(Contents(Integrated))),
+            "СОДЕРЖАНИЕ" => Some(TokenType::Structural { kind: Contents(Collection) }),
+            "ОГЛАВЛЕНИЕ" => Some(TokenType::Structural { kind: Contents(Integrated) }),
             
-            "НОРМАТИВНЫЕ ССЫЛКИ" => Some(TokenType::Structural(NormativeReferences)),
-            "ОПРЕДЕЛЕНИЯ ОБОЗНАЧЕНИЯ СОКРАЩЕНИЯ" => Some(TokenType::Structural(Definitions)),
-            "ВВЕДЕНИЕ" => Some(TokenType::Structural(Introduction)),
-            "ОСНОВНАЯ ЧАСТЬ" => Some(TokenType::Structural(MainPart)),
+            "НОРМАТИВНЫЕ ССЫЛКИ" => Some(TokenType::Structural { kind: NormativeReferences }),
+            "ОПРЕДЕЛЕНИЯ ОБОЗНАЧЕНИЯ СОКРАЩЕНИЯ" => Some(TokenType::Structural { kind: Definitions }),
+            "ВВЕДЕНИЕ" => Some(TokenType::Structural { kind: Introduction }),
+            "ОСНОВНАЯ ЧАСТЬ" => Some(TokenType::Structural { kind: MainPart }),
             
-            "ЗАКЛЮЧЕНИЕ" => Some(TokenType::Structural(Conclusion(Final))),
-            "ВЫВОДЫ" => Some(TokenType::Structural(Conclusion(Summary))),
+            "ЗАКЛЮЧЕНИЕ" => Some(TokenType::Structural { kind: Conclusion(Final) }),
+            "ВЫВОДЫ" => Some(TokenType::Structural { kind: Conclusion(Summary) }),
             
-            "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ" => Some(TokenType::Structural(Sources)),
-            "ПРИЛОЖЕНИЕ" => Some(TokenType::Structural(Appendix)),
-            "СВЕДЕНИЯ О САМОСТОЯТЕЛЬНОСТИ ВЫПОЛНЕНИЯ РАБОТЫ" => Some(TokenType::Structural(IndependenceStatement)),
+            "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ" => Some(TokenType::Structural { kind: Sources }),
+            "ПРИЛОЖЕНИЕ" => Some(TokenType::Structural { kind: Appendix }),
+            "СВЕДЕНИЯ О САМОСТОЯТЕЛЬНОСТИ ВЫПОЛНЕНИЯ РАБОТЫ" => Some(TokenType::Structural { kind: IndependenceStatement }),
 
             "РИСУНОК" => Some(TokenType::Figure),
             "ТАБЛИЦА" => Some(TokenType::Table),
             "СТРОКА" => Some(TokenType::Row),
 
-            "ПРИМЕЧАНИЯ" => Some(TokenType::Note(General)),
-            "ПРИМЕРЫ" => Some(TokenType::Note(Example)),
-            "ПОЯСНЕНИЯ" => Some(TokenType::Note(Remark)),
+            "ПРИМЕЧАНИЯ" => Some(TokenType::Note { kind: General }),
+            "ПРИМЕРЫ" => Some(TokenType::Note { kind: Example }),
+            "ПОЯСНЕНИЯ" => Some(TokenType::Note { kind: Remark }),
 
             _ => None,
         }
