@@ -11,6 +11,7 @@ use swash::FontRef;
 use swash::shape::ShapeContext;
 use printpdf::*;
 
+#[allow(dead_code)]
 pub struct LayoutConfig {
     pub page_width: Mm,
     pub page_height: Mm,
@@ -23,6 +24,7 @@ pub struct LayoutConfig {
     pub indent: Mm,
 }
 
+#[allow(dead_code)]
 impl LayoutConfig {
     pub fn from_node(doc: &Document) -> Self {
         let get_num = |key: &str, default: f32| -> f32 {
@@ -76,6 +78,7 @@ impl PdfFont {
     }
 }
 
+#[allow(dead_code)]
 pub struct FontFamily {
     pub regular: PdfFont,
     pub bold: PdfFont,
@@ -83,6 +86,7 @@ pub struct FontFamily {
 }
 
 #[derive(PartialEq)]
+#[allow(dead_code)]
 pub enum TextAlign {
     Left,
     Center,
@@ -133,9 +137,9 @@ impl PdfBackend {
     }
 
     fn load_fonts(&self, doc: &mut PdfDocument) -> Result<FontFamily, Box<dyn std::error::Error>> {
-        let regular_data = include_bytes!("../../../../assets/fonts/PT-Astra-Serif/pt-astra-serif_regular.ttf");
-        let bold_data    = include_bytes!("../../../../assets/fonts/PT-Astra-Serif/pt-astra-serif_bold.ttf");
-        let italic_data  = include_bytes!("../../../../assets/fonts/PT-Astra-Serif/pt-astra-serif_italic.ttf");
+        let regular_data = include_bytes!("../assets/fonts/PT-Astra-Serif/pt-astra-serif_regular.ttf");
+        let bold_data    = include_bytes!("../assets/fonts/PT-Astra-Serif/pt-astra-serif_bold.ttf");
+        let italic_data  = include_bytes!("../assets/fonts/PT-Astra-Serif/pt-astra-serif_italic.ttf");
 
         let mut load_style = |data: &[u8], name: &str| -> Result<PdfFont, Box<dyn std::error::Error>> {
             let parsed = ParsedFont::from_bytes(data, 0, &mut Vec::new())

@@ -106,6 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let pdf_bytes = pdf_backend.render(doc)?;
             let output_path = args.input.with_extension("pdf");
             fs::write(&output_path, pdf_bytes)?;
+            println!("Document generated at {:?}", output_path);
         }
     }
 
