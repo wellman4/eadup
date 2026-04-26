@@ -12,6 +12,9 @@ use clap::{Parser, ValueEnum};
 
 mod lexer;
 mod parser;
+mod backend;
+
+use backend::Backend;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -36,7 +39,6 @@ struct Args {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 enum OutputFormat {
     Pdf,
-    Docx,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -87,10 +89,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut parser = parser::Parser::new(lexer);
     let document_ast = parser.parse();
+    let doc = if let parser::ast::Node::Document(ref d) = document_ast {
+        d
+    } else {
+        panic!("AST root must be a Document");
+    };
 
     if args.emit_ast {
         let debug_tree = document_ast.debug_print(0);
         fs::write(args.input.with_extension("ast"), debug_tree)?;
+    }
+    
+    match args.format {
+        OutputFormat::Pdf => {
+            let mut pdf_backend = backend::pdf::PdfBackend::new();
+            pdf_backend.render(doc)?;
+        }
     }
 
     Ok(())

@@ -5,3 +5,7 @@
 //  the Free Software Foundation, either version 3 of the License.
 
 pub mod pdf;
+
+pub trait Backend {
+    fn render(&mut self, doc: &crate::parser::ast::Document) -> Result<String, Box<dyn std::error::Error>>;
+}
