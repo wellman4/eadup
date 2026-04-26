@@ -1,4 +1,4 @@
-//  Copyright (C) 2026 Ivan Goglenkov (wellman4)
+//  Copyright (C) 2026 wellman4
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published by
@@ -10,7 +10,6 @@ use crate::parser::ast::{Node, Document, ListContainer};
 use swash::FontRef;
 use swash::shape::ShapeContext;
 use printpdf::*;
-use std::fs;
 
 pub struct LayoutConfig {
     pub page_width: Mm,
@@ -133,27 +132,27 @@ impl PdfBackend {
         Self
     }
 
-    fn load_fonts(
-        &self, 
-        doc: &mut PdfDocument
-    ) -> Result<FontFamily, Box<dyn std::error::Error>> {
-        
-        let mut load_style = |name: &str| -> Result<PdfFont, Box<dyn std::error::Error>> {
-            let path = format!("assets/fonts/PT-Astra-Serif/pt-astra-serif_{}.ttf", name);
-            let data = fs::read(&path)
-                .map_err(|e| format!("Шрифт {} не найден: {}", path, e))?;
+    fn load_fonts(&self, doc: &mut PdfDocument) -> Result<FontFamily, Box<dyn std::error::Error>> {
+        let regular_data = include_bytes!("../../../../assets/fonts/PT-Astra-Serif/pt-astra-serif_regular.ttf");
+        let bold_data    = include_bytes!("../../../../assets/fonts/PT-Astra-Serif/pt-astra-serif_bold.ttf");
+        let italic_data  = include_bytes!("../../../../assets/fonts/PT-Astra-Serif/pt-astra-serif_italic.ttf");
 
-            let parsed = ParsedFont::from_bytes(&data, 0, &mut Vec::new())
-                .ok_or(format!("Ошибка парсинга {}", path))?;
+        let mut load_style = |data: &[u8], name: &str| -> Result<PdfFont, Box<dyn std::error::Error>> {
+            let parsed = ParsedFont::from_bytes(data, 0, &mut Vec::new())
+                .ok_or(format!("Ошибка парсинга шрифта {}", name))?;
+            
             let handle = PdfFontHandle::External(doc.add_font(&parsed));
 
-            Ok(PdfFont { handle, data })
+            Ok(PdfFont { 
+                handle, 
+                data: data.to_vec()
+            })
         };
 
         Ok(FontFamily {
-            regular: load_style("regular")?,
-            bold: load_style("bold")?,
-            italic: load_style("italic")?,
+            regular: load_style(regular_data, "regular")?,
+            bold:    load_style(bold_data, "bold")?,
+            italic:  load_style(italic_data, "italic")?,
         })
     }
 
@@ -604,7 +603,7 @@ impl PdfBackend {
 }
  
 impl Backend for PdfBackend {
-    fn render(&mut self, ast_root: &Document) -> Result<String, Box<dyn std::error::Error>> {
+    fn render(&mut self, ast_root: &Document) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         let l_cfg = LayoutConfig::from_node(ast_root);
         let mut doc = PdfDocument::new("Образец");
         
@@ -630,9 +629,6 @@ impl Backend for PdfBackend {
             .with_pages(state.pages)
             .save(&PdfSaveOptions::default(), &mut save_warnings);
 
-        let file_path = "output.pdf";
-        fs::write(file_path, pdf_bytes)?;
-
-        Ok(file_path.to_string())
+        Ok(pdf_bytes)
     }
 }

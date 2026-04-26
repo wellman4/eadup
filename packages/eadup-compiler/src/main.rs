@@ -1,4 +1,4 @@
-//  Copyright (C) 2026 Ivan Goglenkov (wellman4)
+//  Copyright (C) 2026 wellman4
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU Affero General Public License as published by
@@ -103,7 +103,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match args.format {
         OutputFormat::Pdf => {
             let mut pdf_backend = backend::pdf::PdfBackend::new();
-            pdf_backend.render(doc)?;
+            let pdf_bytes = pdf_backend.render(doc)?;
+            let output_path = args.input.with_extension("pdf");
+            fs::write(&output_path, pdf_bytes)?;
         }
     }
 

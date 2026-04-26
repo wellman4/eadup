@@ -1,5 +1,5 @@
 eadup v0.1.0
-Copyright (c) 2026 Ivan Goglenkov (wellman4)
+Copyright (c) 2026 wellman4
 This project is licensed under the GNU Affero General Public License v3.0.
 The full text of the license can be found in the LICENSE file in the root directory.
 
@@ -29,15 +29,25 @@ This project incorporates components from the following third-party libraries:
    License: MIT OR Apache-2.0
    URL: https://github.com/fschutt/printpdf
 
+5. Swash v0.2.7
+   Copyright (c) 2021-2026 Brandon Barnett
+   License:  MIT OR Apache-2.0 
+   URL: https://github.com/dfrg/swash
+
+6. Wasm-bindgen v0.2.118
+   Copyright (c) 2014-2026 The wasm-bindgen Developers
+   License: MIT OR Apache-2.0
+   URL: https://github.com/wasm-bindgen/wasm-bindgen
+
 This project includes the following fonts (Font Software):
 
-5. PT Astra Serif
+7. PT Astra Serif
    Copyright (c) 2018, Paratype Inc.
    Reserved Font Name: "PT Astra Serif"
    License: SIL Open Font License, Version 1.1
    URL: https://scripts.sil.org/OFL
 
-6. PT Mono
+8. PT Mono
    Copyright (c) 2018, Paratype Inc.
    Reserved Font Name: "PT Mono"
    License: SIL Open Font License, Version 1.1
