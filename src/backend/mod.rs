@@ -7,5 +7,8 @@
 pub mod pdf;
 
 pub trait Backend {
-    fn render(&mut self, doc: &crate::parser::ast::Document) -> Result<Vec<u8>, Box<dyn std::error::Error>>;
+    fn render(
+        &mut self,
+        doc: &crate::parser::ast::Document,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error>>;
 }

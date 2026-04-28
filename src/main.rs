@@ -4,70 +4,67 @@
 //  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License.
 
-use std::fs;
 use std::fmt::Write as _;
+use std::fs;
 use std::path::PathBuf;
 use std::process;
-use clap::{Parser, ValueEnum};
 
-mod lexer;
-mod parser;
-mod backend;
+#[cfg(feature = "cli")]
+use clap::Parser;
 
-use backend::Backend;
+use eadup::OutputFormat;
+#[cfg(feature = "cli")]
+use eadup::lexer::token::TokenType;
 
+#[cfg(feature = "cli")]
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Путь к входному файлу (.ead)
+    /// Path to the input file (.ead)
     #[arg(value_name = "FILE")]
     input: PathBuf,
 
-    /// Формат выходного файла
+    /// Output file format
     #[arg(short = 'f', long, value_enum, default_value_t = OutputFormat::Pdf)]
     format: OutputFormat,
 
-    /// Сохранить результат лексического анализа в .tokens файл
+    /// Save the lexical token stream to a file
     #[arg(long)]
     emit_tokens: bool,
 
-    /// Сохранить структуру документа в .ast файл
+    /// Save the Abstract Syntax Tree (AST) structure to a file
     #[arg(long)]
     emit_ast: bool,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-enum OutputFormat {
-    Pdf,
-}
-
+#[cfg(feature = "cli")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
+    // Read input file content
     let content = match fs::read_to_string(&args.input) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("Ошибка: не удалось прочитать файл {:?}: {}", args.input, e);
+            eprintln!("Error: could not read file {:?}: {}", args.input, e);
             process::exit(1);
         }
     };
 
-    let lexer = lexer::Lexer::new(&content);
-
     if args.emit_tokens {
+        let tokens = eadup::get_tokens(&content);
         let output_path = args.input.with_extension("tokens");
         let mut output = String::new();
 
         writeln!(output, "{:<5} | {:<30} | TOKEN KIND", "LINE", "RAW")?;
         writeln!(output, "{:-<80}", "")?;
 
-        for token in lexer.clone() {
-            if let lexer::token::TokenType::Error { ref message } = token.kind {
-                eprintln!("предупреждение на строке {}: {}", token.line, message);
+        for token in tokens {
+            if let TokenType::Error { ref message } = token.kind {
+                eprintln!("Warning at line {}: {}", token.line, message);
             }
 
             let escaped_raw = token.raw.replace('\n', "\\n");
-            
+
             let display_raw = if escaped_raw.chars().count() > 30 {
                 format!("{}...", escaped_raw.chars().take(27).collect::<String>())
             } else {
@@ -82,33 +79,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         fs::write(&output_path, output).map_err(|e| {
-            eprintln!("Ошибка записи токенов: {}", e);
+            eprintln!("Error writing tokens file: {}", e);
             e
         })?;
     }
 
-    let mut parser = parser::Parser::new(lexer);
-    let document_ast = parser.parse();
-    let doc = if let parser::ast::Node::Document(ref d) = document_ast {
-        d
-    } else {
-        panic!("AST root must be a Document");
-    };
+    let ast = eadup::get_ast(&content);
 
     if args.emit_ast {
-        let debug_tree = document_ast.debug_print(0);
+        let debug_tree = ast.debug_print(0);
         fs::write(args.input.with_extension("ast"), debug_tree)?;
     }
-    
-    match args.format {
-        OutputFormat::Pdf => {
-            let mut pdf_backend = backend::pdf::PdfBackend::new();
-            let pdf_bytes = pdf_backend.render(doc)?;
-            let output_path = args.input.with_extension("pdf");
-            fs::write(&output_path, pdf_bytes)?;
-            println!("Document generated at {:?}", output_path);
-        }
-    }
+
+    let (output_bytes, extension) = eadup::render(&ast, args.format)?;
+    let output_path = args.input.with_extension(extension);
+    fs::write(&output_path, output_bytes)?;
+    println!("Document generated at {:?}", output_path);
 
     Ok(())
 }

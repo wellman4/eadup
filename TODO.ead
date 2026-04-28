@@ -1,7 +1,5 @@
-ОСНОВНАЯ ЧАСТЬ
-
-/ Задачи
-- исправить выравнивание текста по ширине (убрать погрешность)
-- протестировать отрисовку отладочной рамки полей
-- протестировать перенос слов в абзаце
- 
+- Fix text justification (remove calculation errors)
+- Test debug margins rendering
+- Test word wrapping within paragraphs
+- Add unit and integration tests
+- Implement pagination and element splitting logic

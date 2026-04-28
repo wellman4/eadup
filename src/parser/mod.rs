@@ -6,21 +6,21 @@
 
 pub mod ast;
 
-use std::collections::HashMap;
 use crate::lexer::token::{Token, TokenType};
 use crate::parser::ast::*;
+use std::collections::HashMap;
 
-pub struct Parser<'a, I> 
-where 
-    I: Iterator<Item = Token<'a>> 
+pub struct Parser<'a, I>
+where
+    I: Iterator<Item = Token<'a>>,
 {
     tokens: std::iter::Peekable<I>,
     current_attributes: HashMap<String, String>,
 }
 
-impl<'a, I> Parser<'a, I> 
-where 
-    I: Iterator<Item = Token<'a>> 
+impl<'a, I> Parser<'a, I>
+where
+    I: Iterator<Item = Token<'a>>,
 {
     pub fn new(tokens: I) -> Self {
         Self {
@@ -38,9 +38,9 @@ where
         let mut stack: Vec<Node> = Vec::new();
 
         while let Some(token) = self.tokens.next() {
-            match &token.kind {                
+            match &token.kind {
                 TokenType::EmptyLine => self.handle_empty_line(&mut stack, &mut root),
-                
+
                 TokenType::Attribute { key, value } => {
                     if let Some(top) = stack.last_mut() {
                         self.apply_to_node(top, key, value);
@@ -62,13 +62,28 @@ where
         Node::Document(root)
     }
 
-    fn process_token(&mut self, node: Node, stack: &mut Vec<Node>, root: &mut Document, kind: &TokenType) {
+    fn process_token(
+        &mut self,
+        node: Node,
+        stack: &mut Vec<Node>,
+        root: &mut Document,
+        kind: &TokenType,
+    ) {
         if let Node::Structural(_) = node {
             while let Some(top) = stack.last() {
-                if matches!(top, Node::Structural(_) | Node::Section(_) | Node::Note(_) | Node::Table(_) | Node::List(_)) {
+                if matches!(
+                    top,
+                    Node::Structural(_)
+                        | Node::Section(_)
+                        | Node::Note(_)
+                        | Node::Table(_)
+                        | Node::List(_)
+                ) {
                     let closed = stack.pop().unwrap();
                     self.add_to_parent(closed, stack, root);
-                } else { break; }
+                } else {
+                    break;
+                }
             }
         }
 
@@ -87,13 +102,15 @@ where
                 if should_pop {
                     let closed = stack.pop().unwrap();
                     self.add_to_parent(closed, stack, root);
-                } else { break; }
+                } else {
+                    break;
+                }
             }
         }
 
         while !stack.is_empty() {
             let top = stack.last().unwrap();
-            
+
             let is_new_structural = matches!(kind, TokenType::Structural { .. });
             let top_is_structural = matches!(top, Node::Structural(_));
 
@@ -112,7 +129,13 @@ where
         }
     }
 
-    fn process_list_item(&mut self, level: u8, text: String, stack: &mut Vec<Node>, root: &mut Document) {
+    fn process_list_item(
+        &mut self,
+        level: u8,
+        text: String,
+        stack: &mut Vec<Node>,
+        root: &mut Document,
+    ) {
         while let Some(top) = stack.last() {
             let should_pop = match top {
                 Node::ListItem(i) => i.level >= level,
@@ -120,9 +143,13 @@ where
                     if stack.len() >= 2 {
                         if let Node::ListItem(parent_item) = &stack[stack.len() - 2] {
                             parent_item.level >= level
-                        } else { false }
-                    } else { false }
-                },
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                }
                 _ => !self.is_container(top),
             };
 
@@ -157,7 +184,7 @@ where
         if let Some(parent) = stack.last_mut() {
             match (parent, &node) {
                 (Node::List(l), Node::ListItem(_)) => l.items.push(node),
-                
+
                 (_, Node::ListItem(_)) => {
                     root.children.push(node);
                 }
@@ -171,7 +198,7 @@ where
                 (Node::TableRow(r), _) => r.cells.push(node),
                 (Node::TableCell(c), _) => c.children.push(node),
                 (Node::Note(n), _) => n.children.push(node),
-                
+
                 _ => root.children.push(node),
             }
         } else {
@@ -181,38 +208,56 @@ where
 
     fn handle_empty_line(&mut self, stack: &mut Vec<Node>, root: &mut Document) {
         while let Some(top) = stack.last() {
-            let should_pop = matches!(top, 
-                Node::TableCell(_) | Node::TableRow(_) | Node::Table(_) | 
-                Node::ListItem(_) | Node::List(_) | Node::Note(_) | Node::Figure(_)
+            let should_pop = matches!(
+                top,
+                Node::TableCell(_)
+                    | Node::TableRow(_)
+                    | Node::Table(_)
+                    | Node::ListItem(_)
+                    | Node::List(_)
+                    | Node::Note(_)
+                    | Node::Figure(_)
             );
             if should_pop {
                 let node = stack.pop().unwrap();
                 self.add_to_parent(node, stack, root);
-            } else { break; }
+            } else {
+                break;
+            }
         }
     }
 
     fn apply_attributes(&mut self, node: &mut Node) {
-        if self.current_attributes.is_empty() { return; }
+        if self.current_attributes.is_empty() {
+            return;
+        }
         match node {
             Node::Document(d) => d.attributes.extend(self.current_attributes.drain()),
             Node::Structural(s) => s.attributes.extend(self.current_attributes.drain()),
             Node::Table(t) => t.attributes.extend(self.current_attributes.drain()),
             Node::Listing(l) => l.attributes.extend(self.current_attributes.drain()),
             Node::Figure(f) => f.attributes.extend(self.current_attributes.drain()),
-            _ => {} 
+            _ => {}
         }
     }
 
     fn apply_to_node(&self, node: &mut Node, key: &str, value: &str) {
         match node {
-            Node::Structural(s) => { s.attributes.insert(key.into(), value.into()); }
-            Node::Table(t) => { t.attributes.insert(key.into(), value.into()); }
-            Node::Listing(l) => { l.attributes.insert(key.into(), value.into()); }
+            Node::Structural(s) => {
+                s.attributes.insert(key.into(), value.into());
+            }
+            Node::Table(t) => {
+                t.attributes.insert(key.into(), value.into());
+            }
+            Node::Listing(l) => {
+                l.attributes.insert(key.into(), value.into());
+            }
             Node::Figure(f) => {
                 f.attributes.insert(key.to_string(), value.to_string());
-            }            
-            Node::Document(d) => { d.attributes.insert(key.into(), value.into()); }
+            }
+            Node::Document(d) => {
+                d.attributes.insert(key.into(), value.into());
+            }
             _ => {}
         }
     }
@@ -224,15 +269,26 @@ where
     }
 
     fn is_container(&self, node: &Node) -> bool {
-        matches!(node, Node::Structural(_) | Node::Section(_) | Node::Table(_) | 
-                 Node::TableRow(_) | Node::TableCell(_) | Node::Note(_) | 
-                 Node::List(_) | Node::ListItem(_) | Node::Figure(_) |
-                 Node::Listing(_))
+        matches!(
+            node,
+            Node::Structural(_)
+                | Node::Section(_)
+                | Node::Table(_)
+                | Node::TableRow(_)
+                | Node::TableCell(_)
+                | Node::Note(_)
+                | Node::List(_)
+                | Node::ListItem(_)
+                | Node::Figure(_)
+                | Node::Listing(_)
+        )
     }
 
     fn create_node_instance(&self, token: &Token<'a>) -> Option<Node> {
         match &token.kind {
-            TokenType::Paragraph { text } => Some(Node::Paragraph(Paragraph { text: text.to_string() })),
+            TokenType::Paragraph { text } => Some(Node::Paragraph(Paragraph {
+                text: text.to_string(),
+            })),
             TokenType::Section { level, heading } => Some(Node::Section(Section {
                 level: *level,
                 title: heading.to_string(),
@@ -243,17 +299,30 @@ where
                 text: text.to_string(),
                 children: Vec::new(),
             })),
-            TokenType::Table => Some(Node::Table(Table { children: Vec::new(), attributes: HashMap::new() })),
+            TokenType::Table => Some(Node::Table(Table {
+                children: Vec::new(),
+                attributes: HashMap::new(),
+            })),
             TokenType::Row => Some(Node::TableRow(TableRow { cells: Vec::new() })),
             TokenType::Cell { text } => {
-                let mut cell = TableCell { children: Vec::new() };
+                let mut cell = TableCell {
+                    children: Vec::new(),
+                };
                 if let Some(txt) = text {
-                    cell.children.push(Node::Paragraph(Paragraph { text: txt.to_string() }));
+                    cell.children.push(Node::Paragraph(Paragraph {
+                        text: txt.to_string(),
+                    }));
                 }
                 Some(Node::TableCell(cell))
-            },
-            TokenType::Listing { code } => Some(Node::Listing(Listing { text: code.clone(), attributes: HashMap::new() })),
-            TokenType::Note { kind } => Some(Node::Note(NoteBlock { kind: *kind, children: Vec::new() })),
+            }
+            TokenType::Listing { code } => Some(Node::Listing(Listing {
+                text: code.clone(),
+                attributes: HashMap::new(),
+            })),
+            TokenType::Note { kind } => Some(Node::Note(NoteBlock {
+                kind: *kind,
+                children: Vec::new(),
+            })),
             TokenType::Figure => Some(Node::Figure(Attributed {
                 attributes: HashMap::new(),
                 children: Vec::new(),
@@ -269,40 +338,63 @@ where
 
     fn can_contain(&self, parent: &Node, child_kind: &TokenType) -> bool {
         match parent {
-            Node::Document(_) => matches!(child_kind, 
+            Node::Document(_) => matches!(
+                child_kind,
                 TokenType::Structural { .. } | TokenType::Attribute { .. } | TokenType::EmptyLine
             ),
 
-            Node::Structural(_) => matches!(child_kind, 
-                TokenType::Paragraph { .. } | TokenType::Section { .. } | 
-                TokenType::Figure | TokenType::Table | 
-                TokenType::ListItem { .. } | TokenType::Note { .. } | 
-                TokenType::Attribute { .. } | TokenType::EmptyLine | 
-                TokenType::Listing { .. }
+            Node::Structural(_) => matches!(
+                child_kind,
+                TokenType::Paragraph { .. }
+                    | TokenType::Section { .. }
+                    | TokenType::Figure
+                    | TokenType::Table
+                    | TokenType::ListItem { .. }
+                    | TokenType::Note { .. }
+                    | TokenType::Attribute { .. }
+                    | TokenType::EmptyLine
+                    | TokenType::Listing { .. }
             ),
 
-            Node::Section(_) => matches!(child_kind, 
-                TokenType::Paragraph { .. } | TokenType::ListItem { .. } | 
-                TokenType::Figure | TokenType::Table | 
-                TokenType::Listing { .. } | TokenType::Note { .. } | 
-                TokenType::Section { .. }
+            Node::Section(_) => matches!(
+                child_kind,
+                TokenType::Paragraph { .. }
+                    | TokenType::ListItem { .. }
+                    | TokenType::Figure
+                    | TokenType::Table
+                    | TokenType::Listing { .. }
+                    | TokenType::Note { .. }
+                    | TokenType::Section { .. }
             ),
 
-            Node::Table(_) => matches!(child_kind, TokenType::Row | TokenType::Attribute { .. } | TokenType::Note { .. } | TokenType::EmptyLine),
-            
+            Node::Table(_) => matches!(
+                child_kind,
+                TokenType::Row
+                    | TokenType::Attribute { .. }
+                    | TokenType::Note { .. }
+                    | TokenType::EmptyLine
+            ),
+
             Node::TableRow(_) => matches!(child_kind, TokenType::Cell { .. }),
-            
-            Node::TableCell(_) => matches!(child_kind, 
+
+            Node::TableCell(_) => matches!(
+                child_kind,
                 TokenType::Paragraph { .. } | TokenType::ListItem { .. } | TokenType::EmptyLine
             ),
 
             Node::Note(_) => matches!(child_kind, TokenType::ListItem { .. }),
 
-            Node::Figure(_) => matches!(child_kind, TokenType::Attribute { .. } | TokenType::Note { .. } | TokenType::EmptyLine),
+            Node::Figure(_) => matches!(
+                child_kind,
+                TokenType::Attribute { .. } | TokenType::Note { .. } | TokenType::EmptyLine
+            ),
 
             Node::List(_) => matches!(child_kind, TokenType::ListItem { .. }),
 
-            Node::ListItem(_) => matches!(child_kind, TokenType::Paragraph { .. } | TokenType::EmptyLine),
+            Node::ListItem(_) => matches!(
+                child_kind,
+                TokenType::Paragraph { .. } | TokenType::EmptyLine
+            ),
 
             Node::Listing(_) => matches!(child_kind, TokenType::Attribute { .. }),
 
@@ -310,4 +402,3 @@ where
         }
     }
 }
-

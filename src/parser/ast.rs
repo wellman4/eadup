@@ -4,10 +4,10 @@
 //  it under the terms of the GNU Affero General Public License as published by
 //  the Free Software Foundation, either version 3 of the License.
 
+use crate::lexer::token::{NoteKind, StructuralKind};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Write;
-use crate::lexer::token::{StructuralKind, NoteKind};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "type")]
@@ -27,6 +27,14 @@ pub enum Node {
 }
 
 impl Node {
+    pub fn as_document(&self) -> Option<&Document> {
+        if let Node::Document(d) = self {
+            Some(d)
+        } else {
+            None
+        }
+    }
+
     pub fn debug_print(&self, indent: usize) -> String {
         let mut result = String::new();
         let space = "  ".repeat(indent);
@@ -47,13 +55,23 @@ impl Node {
                 }
             }
             Node::Structural(el) => {
-                writeln!(result, "{}Structural(kind={:?}) [attrs: {:?}]", space, el.kind, el.attributes).unwrap();
+                writeln!(
+                    result,
+                    "{}Structural(kind={:?}) [attrs: {:?}]",
+                    space, el.kind, el.attributes
+                )
+                .unwrap();
                 for child in &el.children {
                     result.push_str(&child.debug_print(indent + 1));
                 }
             }
             Node::Section(h) => {
-                writeln!(result, "{}Section(level={}, title='{}')", space, h.level, h.title).unwrap();
+                writeln!(
+                    result,
+                    "{}Section(level={}, title='{}')",
+                    space, h.level, h.title
+                )
+                .unwrap();
                 for child in &h.children {
                     result.push_str(&child.debug_print(indent + 1));
                 }
@@ -68,14 +86,30 @@ impl Node {
                 }
             }
             Node::ListItem(item) => {
-                writeln!(result, "{}ListItem(level={}, text='{}')", space, item.level, truncate(&item.text)).unwrap();
+                writeln!(
+                    result,
+                    "{}ListItem(level={}, text='{}')",
+                    space,
+                    item.level,
+                    truncate(&item.text)
+                )
+                .unwrap();
                 for child in &item.children {
                     result.push_str(&child.debug_print(indent + 1));
                 }
             }
             Node::Table(t) => {
-                let row_count = t.children.iter().filter(|n| matches!(n, Node::TableRow(_))).count();
-                writeln!(result, "{}Table [rows: {}, attrs: {:?}]", space, row_count, t.attributes).unwrap();
+                let row_count = t
+                    .children
+                    .iter()
+                    .filter(|n| matches!(n, Node::TableRow(_)))
+                    .count();
+                writeln!(
+                    result,
+                    "{}Table [rows: {}, attrs: {:?}]",
+                    space, row_count, t.attributes
+                )
+                .unwrap();
                 for child in &t.children {
                     result.push_str(&child.debug_print(indent + 1));
                 }
@@ -99,7 +133,14 @@ impl Node {
                 }
             }
             Node::Listing(l) => {
-                writeln!(result, "{}Listing(text='{}') [attrs: {:?}]", space, truncate(&l.text.replace('\n', " ")), l.attributes).unwrap();
+                writeln!(
+                    result,
+                    "{}Listing(text='{}') [attrs: {:?}]",
+                    space,
+                    truncate(&l.text.replace('\n', " ")),
+                    l.attributes
+                )
+                .unwrap();
             }
             Node::Figure(f) => {
                 writeln!(result, "{}Figure [attrs: {:?}]", space, f.attributes).unwrap();

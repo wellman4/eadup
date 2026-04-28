@@ -5,11 +5,11 @@
 //  the Free Software Foundation, either version 3 of the License.
 
 use crate::backend::Backend;
-use crate::lexer::{StructuralKind, AbstractKind, ContentsKind, ConclusionKind};
-use crate::parser::ast::{Node, Document, ListContainer};
+use crate::lexer::{AbstractKind, ConclusionKind, ContentsKind, StructuralKind};
+use crate::parser::ast::{Document, ListContainer, Node};
+use printpdf::*;
 use swash::FontRef;
 use swash::shape::ShapeContext;
-use printpdf::*;
 
 #[allow(dead_code)]
 pub struct LayoutConfig {
@@ -28,7 +28,10 @@ pub struct LayoutConfig {
 impl LayoutConfig {
     pub fn from_node(doc: &Document) -> Self {
         let get_num = |key: &str, default: f32| -> f32 {
-            doc.attributes.get(key).and_then(|s| s.parse().ok()).unwrap_or(default)
+            doc.attributes
+                .get(key)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(default)
         };
 
         Self {
@@ -40,7 +43,7 @@ impl LayoutConfig {
             margin_top: Mm(get_num("верхнее_поле", 20.0)),
             margin_bottom: Mm(get_num("нижнее_поле", 20.0)),
             margin_right: Mm(get_num("правое_поле", 10.0)),
-            indent: Mm(12.5), 
+            indent: Mm(12.5),
         }
     }
 }
@@ -69,12 +72,12 @@ impl RenderState {
 
 pub struct PdfFont {
     pub handle: PdfFontHandle,
-    pub data: Vec<u8>,
+    pub data: &'static [u8],
 }
 
 impl PdfFont {
     pub fn as_swash(&self) -> FontRef<'_> {
-        FontRef::from_index(&self.data, 0).expect("Ошибка создания FontRef")
+        FontRef::from_index(self.data, 0).expect("Failed to create FontRef")
     }
 }
 
@@ -102,13 +105,11 @@ pub enum ListPrefix {
 
 fn measure_width(text: &str, pdf_font: &PdfFont, font_size: f32) -> f32 {
     let font_ref = pdf_font.as_swash();
-    
+
     let mut context = ShapeContext::new();
-    
-    let mut shaper = context.builder(font_ref)
-        .size(font_size)
-        .build();
-    
+
+    let mut shaper = context.builder(font_ref).size(font_size).build();
+
     shaper.add_str(text);
 
     let mut total_width = 0.0;
@@ -123,7 +124,8 @@ fn measure_width(text: &str, pdf_font: &PdfFont, font_size: f32) -> f32 {
 
 fn get_gost_char(idx: usize) -> String {
     let chars = [
-        'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'и', 'к', 'л', 'м', 'н', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ш', 'щ', 'э', 'ю', 'я'
+        'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'и', 'к', 'л', 'м', 'н', 'п', 'р', 'с', 'т', 'у', 'ф',
+        'х', 'ц', 'ш', 'щ', 'э', 'ю', 'я',
     ];
     let c = chars.get(idx).unwrap_or(&'?');
     format!("{})", c)
@@ -137,26 +139,26 @@ impl PdfBackend {
     }
 
     fn load_fonts(&self, doc: &mut PdfDocument) -> Result<FontFamily, Box<dyn std::error::Error>> {
-        let regular_data = include_bytes!("../assets/fonts/PT-Astra-Serif/pt-astra-serif_regular.ttf");
-        let bold_data    = include_bytes!("../assets/fonts/PT-Astra-Serif/pt-astra-serif_bold.ttf");
-        let italic_data  = include_bytes!("../assets/fonts/PT-Astra-Serif/pt-astra-serif_italic.ttf");
+        let regular_data =
+            include_bytes!("../../assets/fonts/PT-Astra-Serif/pt-astra-serif_regular.ttf");
+        let bold_data = include_bytes!("../../assets/fonts/PT-Astra-Serif/pt-astra-serif_bold.ttf");
+        let italic_data =
+            include_bytes!("../../assets/fonts/PT-Astra-Serif/pt-astra-serif_italic.ttf");
 
-        let mut load_style = |data: &[u8], name: &str| -> Result<PdfFont, Box<dyn std::error::Error>> {
-            let parsed = ParsedFont::from_bytes(data, 0, &mut Vec::new())
-                .ok_or(format!("Ошибка парсинга шрифта {}", name))?;
-            
-            let handle = PdfFontHandle::External(doc.add_font(&parsed));
+        let mut load_style =
+            |data: &'static [u8], name: &str| -> Result<PdfFont, Box<dyn std::error::Error>> {
+                let parsed = ParsedFont::from_bytes(data, 0, &mut Vec::new())
+                    .ok_or(format!("Ошибка парсинга шрифта {}", name))?;
 
-            Ok(PdfFont { 
-                handle, 
-                data: data.to_vec()
-            })
-        };
+                let handle = PdfFontHandle::External(doc.add_font(&parsed));
+
+                Ok(PdfFont { handle, data })
+            };
 
         Ok(FontFamily {
             regular: load_style(regular_data, "regular")?,
-            bold:    load_style(bold_data, "bold")?,
-            italic:  load_style(italic_data, "italic")?,
+            bold: load_style(bold_data, "bold")?,
+            italic: load_style(italic_data, "italic")?,
         })
     }
 
@@ -164,12 +166,14 @@ impl PdfBackend {
         if !state.current_ops.is_empty() {
             state.current_ops.push(Op::EndTextSection);
 
-            if state.show_page_numbers { 
+            if state.show_page_numbers {
                 self.draw_page_number(state.page_count, font, l_cfg, &mut state.current_ops);
             }
 
             let ops = std::mem::take(&mut state.current_ops);
-            state.pages.push(PdfPage::new(l_cfg.page_width, l_cfg.page_height, ops));
+            state
+                .pages
+                .push(PdfPage::new(l_cfg.page_width, l_cfg.page_height, ops));
         }
 
         state.page_count += 1;
@@ -180,26 +184,26 @@ impl PdfBackend {
 
         state.current_ops.push(Op::StartTextSection);
 
-        state.current_ops.push(Op::SetFillColor { 
-            col: Color::Greyscale(Greyscale::new(0.0, None)) 
+        state.current_ops.push(Op::SetFillColor {
+            col: Color::Greyscale(Greyscale::new(0.0, None)),
         });
-        state.current_ops.push(Op::SetTextRenderingMode { 
-            mode: TextRenderingMode::Fill 
+        state.current_ops.push(Op::SetTextRenderingMode {
+            mode: TextRenderingMode::Fill,
         });
 
-        state.current_ops.push(Op::SetFont { 
-            font: font.handle.clone(), 
-            size: l_cfg.base_font_size 
+        state.current_ops.push(Op::SetFont {
+            font: font.handle.clone(),
+            size: l_cfg.base_font_size,
         });
-        
+
         let font_size_mm = l_cfg.base_font_size.0 * (25.4 / 72.0);
         state.current_y = l_cfg.page_height - l_cfg.margin_top - Mm(font_size_mm);
 
-        state.current_ops.push(Op::SetTextCursor { 
-            pos: Point::new(l_cfg.margin_left, state.current_y) 
+        state.current_ops.push(Op::SetTextCursor {
+            pos: Point::new(l_cfg.margin_left, state.current_y),
         });
     }
-    
+
     fn write_paragraph(
         &self,
         text: &str,
@@ -217,24 +221,41 @@ impl PdfBackend {
         }
         let mm_to_pt = 72.0 / 25.4;
         let lh_mm = (font_size.0 * multiplier) / mm_to_pt;
-        
-        let content_max_w_mm = l_cfg.page_width.0 - l_cfg.margin_left.0 - l_cfg.margin_right.0 - left_padding.0;
-        
+
+        let content_max_w_mm =
+            l_cfg.page_width.0 - l_cfg.margin_left.0 - l_cfg.margin_right.0 - left_padding.0;
+
         let first_line_limit_mm = content_max_w_mm - first_line_indent.0;
 
-        let lines = self.break_lines(text, content_max_w_mm, first_line_limit_mm, font_size.0, font);
+        let lines = self.break_lines(
+            text,
+            content_max_w_mm,
+            first_line_limit_mm,
+            font_size.0,
+            font,
+        );
         let lines_count = lines.len();
 
-        state.current_ops.push(Op::SetFont { font: font.handle.clone(), size: font_size });
-        state.current_ops.push(Op::SetLineHeight { lh: font_size * multiplier });
+        state.current_ops.push(Op::SetFont {
+            font: font.handle.clone(),
+            size: font_size,
+        });
+        state.current_ops.push(Op::SetLineHeight {
+            lh: font_size * multiplier,
+        });
 
         for (i, line) in lines.iter().enumerate() {
             let is_at_bottom = state.current_y.0 - lh_mm < l_cfg.margin_bottom.0;
 
-            if is_at_bottom {                
+            if is_at_bottom {
                 self.setup_new_page(state, l_cfg, font);
-                state.current_ops.push(Op::SetFont { font: font.handle.clone(), size: font_size });
-                state.current_ops.push(Op::SetLineHeight { lh: font_size * multiplier });
+                state.current_ops.push(Op::SetFont {
+                    font: font.handle.clone(),
+                    size: font_size,
+                });
+                state.current_ops.push(Op::SetLineHeight {
+                    lh: font_size * multiplier,
+                });
             }
 
             let mut word_spacing_pt = 0.0;
@@ -244,19 +265,25 @@ impl PdfBackend {
                 TextAlign::Center => {
                     let text_width_pt = measure_width(line, font, font_size.0);
                     let content_width_pt = content_max_w_mm * mm_to_pt;
-                    
+
                     let offset_pt = (content_width_pt - text_width_pt) / 2.0;
                     (l_cfg.margin_left.0 + left_padding.0) * mm_to_pt + offset_pt
-                },
+                }
                 TextAlign::Left | TextAlign::Justify => {
                     let current_indent = if i == 0 { first_line_indent.0 } else { 0.0 };
-                    let base_x_pt = (l_cfg.margin_left.0 + left_padding.0 + current_indent) * mm_to_pt;
+                    let base_x_pt =
+                        (l_cfg.margin_left.0 + left_padding.0 + current_indent) * mm_to_pt;
 
                     if align == TextAlign::Justify && !is_last_line {
                         let line = line.trim();
                         let actual_line_width_pt = measure_width(line, font, font_size.0);
-                        let current_limit_pt = ((if i == 0 { first_line_limit_mm } else { content_max_w_mm }) * mm_to_pt) - 1.5; 
-                        
+                        let current_limit_pt = ((if i == 0 {
+                            first_line_limit_mm
+                        } else {
+                            content_max_w_mm
+                        }) * mm_to_pt)
+                            - 1.5;
+
                         let diff_pt = current_limit_pt - actual_line_width_pt;
 
                         let words_in_line: Vec<&str> = line.split_whitespace().collect();
@@ -265,12 +292,11 @@ impl PdfBackend {
                         if space_count > 0 && diff_pt > 0.0 {
                             word_spacing_pt = diff_pt / space_count as f32;
                         }
-                    
                     }
                     base_x_pt
                 }
             };
-            
+
             let mut items = Vec::new();
             if word_spacing_pt > 0.0 {
                 let words: Vec<&str> = line.split_whitespace().collect();
@@ -278,7 +304,7 @@ impl PdfBackend {
                     items.push(TextItem::Text(word.to_string()));
                     if idx < words.len() - 1 {
                         let standard_space_width_pt = measure_width(" ", font, font_size.0);
-                        let total_gap_pt = standard_space_width_pt + word_spacing_pt; 
+                        let total_gap_pt = standard_space_width_pt + word_spacing_pt;
                         let offset = -(total_gap_pt * 1000.0 / font_size.0);
                         items.push(TextItem::Offset(offset));
                     }
@@ -287,8 +313,8 @@ impl PdfBackend {
                 items.push(TextItem::Text(line.clone()));
             }
 
-            state.current_ops.push(Op::SetTextMatrix { 
-                matrix: TextMatrix::Translate(Pt(x_pt), state.current_y.into()) 
+            state.current_ops.push(Op::SetTextMatrix {
+                matrix: TextMatrix::Translate(Pt(x_pt), state.current_y.into()),
             });
 
             state.current_ops.push(Op::ShowText { items });
@@ -326,7 +352,7 @@ impl PdfBackend {
                         } else {
                             format!("{})", idx + 1)
                         }
-                    },
+                    }
                     ListPrefix::None => "".to_string(),
                     ListPrefix::Number => format!("{}", idx + 1),
                 };
@@ -358,7 +384,7 @@ impl PdfBackend {
                         l_cfg,
                     );
                 }
-                
+
                 for child in &li.children {
                     match child {
                         Node::List(sub_container) => {
@@ -368,7 +394,7 @@ impl PdfBackend {
                                 state,
                                 l_cfg,
                                 level + 1,
-                                is_last_in_current && is_parent_last
+                                is_last_in_current && is_parent_last,
                             );
                         }
                         other => {
@@ -381,12 +407,12 @@ impl PdfBackend {
     }
 
     fn break_lines(
-        &self, 
-        text: &str, 
-        max_w_mm: f32, 
-        first_line_max_w_mm: f32, 
-        font_size: f32, 
-        font: &PdfFont
+        &self,
+        text: &str,
+        max_w_mm: f32,
+        first_line_max_w_mm: f32,
+        font_size: f32,
+        font: &PdfFont,
     ) -> Vec<String> {
         let mm_to_pt = 72.0 / 25.4;
         let mut lines = Vec::new();
@@ -416,16 +442,18 @@ impl PdfBackend {
                 current_line = word.to_string();
             }
         }
-        if !current_line.is_empty() { lines.push(current_line); }
+        if !current_line.is_empty() {
+            lines.push(current_line);
+        }
         lines
     }
 
     fn collect_ops(
-        &self, 
+        &self,
         node: &Node,
         l_cfg: &LayoutConfig,
         fonts: &FontFamily,
-        state: &mut RenderState
+        state: &mut RenderState,
     ) {
         match node {
             Node::Document(doc) => {
@@ -433,7 +461,7 @@ impl PdfBackend {
                     self.collect_ops(child, l_cfg, fonts, state);
                 }
             }
-            
+
             Node::Structural(el) => {
                 if el.kind != StructuralKind::MainPart {
                     self.setup_new_page(state, l_cfg, &fonts.regular);
@@ -456,7 +484,9 @@ impl PdfBackend {
                         StructuralKind::Conclusion(ConclusionKind::Summary) => "ВЫВОДЫ",
                         StructuralKind::Sources => "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
                         StructuralKind::Appendix => "ПРИЛОЖЕНИЕ",
-                        StructuralKind::IndependenceStatement => "СВЕДЕНИЯ О САМОСТОЯТЕЛЬНОСТИ ВЫПОЛНЕНИЯ РАБОТЫ",
+                        StructuralKind::IndependenceStatement => {
+                            "СВЕДЕНИЯ О САМОСТОЯТЕЛЬНОСТИ ВЫПОЛНЕНИЯ РАБОТЫ"
+                        }
                         StructuralKind::MainPart => "",
                     };
 
@@ -487,7 +517,7 @@ impl PdfBackend {
                                 l_cfg,
                             );
                             ListPrefix::None
-                        },
+                        }
                         StructuralKind::Definitions => {
                             self.write_paragraph(
                                 "В настоящем текстовом документе применяются следующие определения, обозначения и сокращения:",
@@ -499,13 +529,11 @@ impl PdfBackend {
                                 TextAlign::Justify,
                                 state,
                                 l_cfg,
-                            );                            
+                            );
                             ListPrefix::None
-                        },
-                        StructuralKind::Sources => {
-                            ListPrefix::Number
-                        },
-                        _ => ListPrefix::Auto
+                        }
+                        StructuralKind::Sources => ListPrefix::Number,
+                        _ => ListPrefix::Auto,
                     };
                 }
 
@@ -514,7 +542,7 @@ impl PdfBackend {
                 }
             }
 
-            Node::List(container) => {            
+            Node::List(container) => {
                 self.write_list(container, fonts, state, l_cfg, 1, true);
             }
 
@@ -531,7 +559,7 @@ impl PdfBackend {
                     l_cfg,
                 );
             }
-            _ => {} 
+            _ => {}
         }
     }
 
@@ -544,15 +572,31 @@ impl PdfBackend {
         let y_min: Mm = l_cfg.margin_bottom;
         let y_max: Mm = l_cfg.page_height - l_cfg.margin_top;
 
-        ops.push(Op::SetOutlineColor { col: Color::Rgb(Rgb::new(0.8, 0.8, 0.8, None)) });
-        ops.push(Op::SetOutlineThickness { pt: Pt(thickness_pt) });
+        ops.push(Op::SetOutlineColor {
+            col: Color::Rgb(Rgb::new(0.8, 0.8, 0.8, None)),
+        });
+        ops.push(Op::SetOutlineThickness {
+            pt: Pt(thickness_pt),
+        });
 
         let border = Line {
             points: vec![
-                LinePoint { p: Point::new(x_min + offset_mm, y_min + offset_mm), bezier: false },
-                LinePoint { p: Point::new(x_max - offset_mm, y_min + offset_mm), bezier: false },
-                LinePoint { p: Point::new(x_max - offset_mm, y_max - offset_mm), bezier: false },
-                LinePoint { p: Point::new(x_min + offset_mm, y_max - offset_mm), bezier: false },
+                LinePoint {
+                    p: Point::new(x_min + offset_mm, y_min + offset_mm),
+                    bezier: false,
+                },
+                LinePoint {
+                    p: Point::new(x_max - offset_mm, y_min + offset_mm),
+                    bezier: false,
+                },
+                LinePoint {
+                    p: Point::new(x_max - offset_mm, y_max - offset_mm),
+                    bezier: false,
+                },
+                LinePoint {
+                    p: Point::new(x_min + offset_mm, y_max - offset_mm),
+                    bezier: false,
+                },
             ],
             is_closed: true,
         };
@@ -560,37 +604,48 @@ impl PdfBackend {
         ops.push(Op::DrawLine { line: border });
     }
 
-    fn draw_page_number(&self, page_index: usize, font: &PdfFont, l_cfg: &LayoutConfig, ops: &mut Vec<Op>) {
+    fn draw_page_number(
+        &self,
+        page_index: usize,
+        font: &PdfFont,
+        l_cfg: &LayoutConfig,
+        ops: &mut Vec<Op>,
+    ) {
         let font_size = Pt(11.0);
         let mm_to_pt = 72.0 / 25.4;
         let number_text = format!("{}", page_index);
-        
+
         let text_width = measure_width(&number_text, font, font_size.0);
-        
+
         let content_width_mm = l_cfg.page_width.0 - l_cfg.margin_left.0 - l_cfg.margin_right.0;
         let content_width_pt = content_width_mm * mm_to_pt;
         let x_pt = (l_cfg.margin_left.0 * mm_to_pt) + (content_width_pt - text_width) / 2.0;
-        
+
         let y_center_mm = l_cfg.margin_bottom.0 / 2.0;
-        
-        let font_correction_pt = font_size.0 * 0.3; 
+
+        let font_correction_pt = font_size.0 * 0.3;
         let y_pt = (y_center_mm * mm_to_pt) - font_correction_pt;
 
         ops.push(Op::StartTextSection);
-        ops.push(Op::SetFont { font: font.handle.clone(), size: font_size });
-        ops.push(Op::SetTextMatrix { 
-            matrix: TextMatrix::Translate(Pt(x_pt), Pt(y_pt)) 
+        ops.push(Op::SetFont {
+            font: font.handle.clone(),
+            size: font_size,
         });
-        ops.push(Op::ShowText { 
-            items: vec![TextItem::Text(number_text)] 
+        ops.push(Op::SetTextMatrix {
+            matrix: TextMatrix::Translate(Pt(x_pt), Pt(y_pt)),
+        });
+        ops.push(Op::ShowText {
+            items: vec![TextItem::Text(number_text)],
         });
         ops.push(Op::EndTextSection);
     }
 
     fn fix_punctuation(&self, text: &str, target: &str) -> String {
         let t = text.trim();
-        if t.is_empty() { return String::new(); }
-        
+        if t.is_empty() {
+            return String::new();
+        }
+
         let last_c = t.chars().last().unwrap();
         if [';', '.', '!', '?', ':'].contains(&last_c) {
             if ['.', ';'].contains(&last_c) {
@@ -605,28 +660,35 @@ impl PdfBackend {
         }
     }
 }
- 
+
 impl Backend for PdfBackend {
     fn render(&mut self, ast_root: &Document) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         let l_cfg = LayoutConfig::from_node(ast_root);
         let mut doc = PdfDocument::new("Образец");
-        
+
         let fonts = self.load_fonts(&mut doc)?;
 
         let mut state = RenderState::new(&l_cfg);
-        
+
         for child in &ast_root.children {
             self.collect_ops(child, &l_cfg, &fonts, &mut state);
         }
 
         if state.show_page_numbers {
-            self.draw_page_number(state.page_count, &fonts.regular, &l_cfg, &mut state.current_ops);
+            self.draw_page_number(
+                state.page_count,
+                &fonts.regular,
+                &l_cfg,
+                &mut state.current_ops,
+            );
         }
 
         state.current_ops.push(Op::EndTextSection);
 
         let final_ops = std::mem::take(&mut state.current_ops);
-        state.pages.push(PdfPage::new(l_cfg.page_width, l_cfg.page_height, final_ops));
+        state
+            .pages
+            .push(PdfPage::new(l_cfg.page_width, l_cfg.page_height, final_ops));
 
         let mut save_warnings = Vec::new();
         let pdf_bytes = doc

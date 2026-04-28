@@ -1,11 +1,7 @@
 # --- Build Artifacts ---
 /target
 **/pkg/
-
 **/*.rs.bk
-
-# --- Web & JS ---
-**/node_modules/
 
 # --- IDEs and Editors ---
 .vscode/

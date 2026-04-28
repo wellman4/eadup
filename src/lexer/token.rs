@@ -8,15 +8,24 @@ use serde::Serialize;
 
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum AbstractKind { Extended, Short }
+pub enum AbstractKind {
+    Extended,
+    Short,
+}
 
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum ContentsKind { Collection, Integrated }
+pub enum ContentsKind {
+    Collection,
+    Integrated,
+}
 
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum ConclusionKind { Final, Summary }
+pub enum ConclusionKind {
+    Final,
+    Summary,
+}
 
 #[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
@@ -39,27 +48,46 @@ pub enum StructuralKind {
 pub enum NoteKind {
     General,
     Example,
-    Remark, 
+    Remark,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum TokenType<'a> {
-    Structural { kind: StructuralKind },
-    Section { level: u8, heading: &'a str },
+    Structural {
+        kind: StructuralKind,
+    },
+    Section {
+        level: u8,
+        heading: &'a str,
+    },
     Figure,
     Row,
     Cell {
         #[serde(skip_serializing_if = "Option::is_none")]
-        text: Option<&'a str>
+        text: Option<&'a str>,
     },
     Table,
-    Listing { code: String },
-    Attribute { key: &'a str, value: &'a str },
-    Note { kind: NoteKind },
-    Paragraph { text: &'a str },
-    ListItem { level: u8, text: &'a str },
-    Error { message: String },
+    Listing {
+        code: String,
+    },
+    Attribute {
+        key: &'a str,
+        value: &'a str,
+    },
+    Note {
+        kind: NoteKind,
+    },
+    Paragraph {
+        text: &'a str,
+    },
+    ListItem {
+        level: u8,
+        text: &'a str,
+    },
+    Error {
+        message: String,
+    },
     EmptyLine,
 }
 
